@@ -1,0 +1,5 @@
+{
+  "name": "eyeroniq Diagnóstico de Marca",
+  "description": "An intelligent brand auditing tool powered by Gemini 2.5 Flash. Analyzes brand assets, strategy, and risks to generate a comprehensive health score and actionable roadmap.",
+  "requestFramePermissions": []
+}
