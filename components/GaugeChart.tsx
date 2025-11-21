@@ -12,17 +12,15 @@ const GaugeChart: React.FC<GaugeChartProps> = ({ score }) => {
     { name: 'Remaining', value: 100 - score },
   ];
 
-  // Colors for report (professional / print friendly)
   const getColor = (s: number) => {
-    if (s < 50) return '#ef4444'; // Red
-    if (s < 75) return '#f59e0b'; // Amber
-    if (s < 90) return '#8b5cf6'; // Violet
-    return '#10b981'; // Emerald
+    if (s < 50) return '#ef4444'; // Red-500
+    if (s < 75) return '#f59e0b'; // Amber-500
+    if (s < 90) return '#a855f7'; // Purple-500
+    return '#10b981'; // Emerald-500
   };
 
   const activeColor = getColor(score);
-  // Light gray for the empty part to look good on white paper
-  const emptyColor = '#e4e4e7'; // zinc-200
+  const emptyColor = '#27272a'; // Zinc-800
 
   return (
     <div className="relative w-full h-full flex justify-center items-end">
@@ -34,7 +32,7 @@ const GaugeChart: React.FC<GaugeChartProps> = ({ score }) => {
             cy="100%"
             startAngle={180}
             endAngle={0}
-            innerRadius="75%"
+            innerRadius="70%"
             outerRadius="100%"
             paddingAngle={0}
             dataKey="value"
@@ -45,9 +43,8 @@ const GaugeChart: React.FC<GaugeChartProps> = ({ score }) => {
           </Pie>
         </PieChart>
       </ResponsiveContainer>
-      <div className="absolute bottom-0 flex flex-col items-center mb-1">
-        <span className="text-4xl font-bold text-zinc-900">{score}</span>
-        <span className="text-[10px] text-zinc-500 uppercase tracking-widest">Score</span>
+      <div className="absolute bottom-0 flex flex-col items-center mb-2">
+        <span className="text-5xl font-bold text-white tracking-tighter">{score}</span>
       </div>
     </div>
   );
