@@ -1,3 +1,4 @@
+
 export type AssetStatus = 'YES' | 'NO' | 'PARTIAL';
 
 export enum AuditPhase {
@@ -10,6 +11,7 @@ export enum AuditPhase {
 export interface ChecklistItem {
   id: string;
   label: string;
+  description?: string;
   category: 'visual' | 'strategy' | 'risk' | 'objective' | 'service';
 }
 

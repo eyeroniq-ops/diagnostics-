@@ -94,7 +94,20 @@ export const AuditForm: React.FC<AuditFormProps> = ({ onSubmit }) => {
     const isAnswered = !!formData[cat][item.id];
     return (
       <div className={`flex items-center justify-between py-3 border-b last:border-0 transition-colors ${isAnswered ? 'border-zinc-800' : 'border-red-900/30 bg-red-900/5 px-2 rounded'}`}>
-        <span className={`text-sm ${isAnswered ? 'text-zinc-300' : 'text-red-300/80'}`}>{item.label}</span>
+        
+        {/* Tooltip wrapper */}
+        <div className="relative group flex items-center cursor-help">
+            <span className={`text-sm border-b border-dotted border-zinc-700 pb-0.5 ${isAnswered ? 'text-zinc-300' : 'text-red-300/80'}`}>
+                {item.label}
+            </span>
+            {item.description && (
+                <div className="absolute bottom-full left-0 mb-2 w-64 p-3 bg-zinc-950 border border-zinc-700 rounded-lg shadow-2xl text-xs text-zinc-400 z-50 hidden group-hover:block pointer-events-none animate-in fade-in zoom-in-95 duration-200">
+                    {item.description}
+                    <div className="absolute top-full left-4 -mt-px border-4 border-transparent border-t-zinc-700"></div>
+                </div>
+            )}
+        </div>
+
         <div className="flex gap-2">
           <StatusButton status="YES" current={formData[cat][item.id]} onClick={() => updateStatus(cat, item.id, 'YES')} />
           <StatusButton status="PARTIAL" current={formData[cat][item.id]} onClick={() => updateStatus(cat, item.id, 'PARTIAL')} />
@@ -125,8 +138,8 @@ export const AuditForm: React.FC<AuditFormProps> = ({ onSubmit }) => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto bg-zinc-950/80 backdrop-blur border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl shadow-purple-900/10">
-      <div className="h-1 bg-zinc-800">
+    <div className="max-w-3xl mx-auto bg-zinc-950/80 backdrop-blur border border-zinc-800 rounded-2xl overflow-visible shadow-2xl shadow-purple-900/10">
+      <div className="h-1 bg-zinc-800 rounded-t-2xl overflow-hidden">
         <div 
           className="h-full bg-gradient-to-r from-fuchsia-500 to-violet-500 transition-all duration-500" 
           style={{ width: `${(step / 4) * 100}%` }}

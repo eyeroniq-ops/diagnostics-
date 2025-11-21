@@ -1,9 +1,11 @@
+
 import React, { useState } from 'react';
 import { AuditForm } from './components/AuditForm';
 import { AuditReport } from './components/AuditReport';
 import { analyzeBrandProject } from './services/geminiService';
-import { AuditInputData, AnalysisResult } from './types';
-import { Loader2 } from 'lucide-react';
+import { AuditInputData, AnalysisResult, AuditPhase } from './types';
+import { PHASE_CONFIG } from './constants';
+import { Loader2, Info, Palette, Brain, Globe, Rocket } from 'lucide-react';
 
 function App() {
   const [view, setView] = useState<'form' | 'loading' | 'report'>('form');
@@ -33,13 +35,21 @@ function App() {
     setResult(null);
   };
 
+  const getPhaseIcon = (phase: AuditPhase) => {
+    switch (phase) {
+      case AuditPhase.BRANDING_FIRST: return <Palette size={24} />;
+      case AuditPhase.STRATEGY_FIRST: return <Brain size={24} />;
+      case AuditPhase.READY_FOR_WEB: return <Globe size={24} />;
+      case AuditPhase.READY_TO_SCALE: return <Rocket size={24} />;
+      default: return <Info size={24} />;
+    }
+  };
+
   return (
-    <div className="min-h-screen w-full bg-black bg-gradient-to-b from-zinc-900 via-black to-black text-zinc-200 font-sans selection:bg-fuchsia-500/30 relative overflow-x-hidden">
-      {/* Subtle ambient glow behind header */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-64 bg-fuchsia-900/10 blur-3xl pointer-events-none" />
+    <div className="min-h-screen w-full bg-gradient-to-b from-zinc-900 to-black text-zinc-200 font-sans selection:bg-fuchsia-500/30 relative overflow-x-hidden">
       
-      <header className="relative z-50 border-b border-zinc-900 bg-black/80 backdrop-blur-md sticky top-0 no-print">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <header className="sticky top-0 z-50 border-b border-zinc-800 bg-black/80 backdrop-blur-md no-print">
+        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xl font-bold tracking-tight text-white">eyeroniq</span>
           </div>
@@ -49,10 +59,10 @@ function App() {
         </div>
       </header>
 
-      <main className="relative z-10 p-6 md:p-12">
+      <main className="relative z-10 p-6 md:p-12 max-w-5xl mx-auto">
         {view === 'form' && (
-          <div className="space-y-8">
-            <div className="text-center max-w-2xl mx-auto mb-12">
+          <div className="space-y-12 animate-fade-in">
+            <div className="text-center max-w-2xl mx-auto">
               <h1 className="text-4xl md:text-5xl font-light text-white mb-4">
                 Diagnóstico de <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-violet-500 font-medium">Marca</span>
               </h1>
@@ -60,14 +70,35 @@ function App() {
                 Ingresa los detalles del proyecto para generar una hoja de ruta estratégica y puntaje de viabilidad con IA.
               </p>
             </div>
-            
+
             {error && (
-               <div className="max-w-md mx-auto bg-red-900/20 border border-red-500/50 text-red-400 p-4 rounded-lg text-center text-sm mb-6">
+               <div className="bg-red-900/20 border border-red-500/50 text-red-400 p-4 rounded-lg text-center text-sm">
                  {error}
                </div>
             )}
 
             <AuditForm onSubmit={handleAuditSubmit} />
+
+            {/* Phase Legend / Semaphore Info - Moved below form */}
+            <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 backdrop-blur-sm mt-12">
+              <div className="flex items-center gap-2 mb-6 text-sm uppercase tracking-wider font-bold text-zinc-500 border-b border-zinc-800 pb-2">
+                <Info size={16} />
+                Semáforo de Madurez
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {(Object.entries(PHASE_CONFIG) as [AuditPhase, typeof PHASE_CONFIG[AuditPhase]][]).map(([key, config]) => (
+                  <div key={key} className={`p-5 rounded-lg border ${config.border} bg-black/40 flex flex-col gap-3 transition-all hover:bg-zinc-900/60`}>
+                    <div className={`${config.color}`}>
+                      {getPhaseIcon(key as AuditPhase)}
+                    </div>
+                    <div>
+                      <h3 className={`text-xs font-bold uppercase mb-1 ${config.color}`}>{config.label}</h3>
+                      <p className="text-xs text-zinc-400 leading-tight">{config.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 

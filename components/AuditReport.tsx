@@ -1,11 +1,12 @@
+
 import React, { useRef } from 'react';
 import html2canvas from 'html2canvas';
-import { AnalysisResult, AuditInputData, ChecklistItem } from '../types';
+import { AnalysisResult, AuditInputData, ChecklistItem, AuditPhase } from '../types';
 import { PHASE_CONFIG, VISUAL_CHECKLIST, STRATEGY_CHECKLIST, SERVICES_LIST } from '../constants';
 import GaugeChart from './GaugeChart';
-import { Download, Printer, Check, X, AlertTriangle } from 'lucide-react';
+import { Download, Printer, Check, X, AlertTriangle, Palette, Brain, Globe, Rocket, Info } from 'lucide-react';
 
-// Helper components moved to module scope
+// Helper components
 const renderStatusIcon = (status?: string) => {
   if (status === 'YES') return <Check size={16} className="text-fuchsia-400" />;
   if (status === 'PARTIAL') return <AlertTriangle size={16} className="text-yellow-400" />;
@@ -13,7 +14,7 @@ const renderStatusIcon = (status?: string) => {
 };
 
 const AuditItemDetail: React.FC<{ item: ChecklistItem, status: string, observation: string }> = ({ item, status, observation }) => (
-  <div className="mb-4 p-3 bg-zinc-900/50 rounded border border-zinc-800">
+  <div className="mb-4 p-3 bg-zinc-900/50 rounded border border-zinc-800 break-inside-avoid">
     <div className="flex items-center justify-between mb-2">
       <span className="text-zinc-200 font-medium text-sm">{item.label}</span>
       {renderStatusIcon(status)}
@@ -23,6 +24,16 @@ const AuditItemDetail: React.FC<{ item: ChecklistItem, status: string, observati
     </p>
   </div>
 );
+
+const getPhaseIcon = (phase: AuditPhase, size: number = 24) => {
+  switch (phase) {
+    case AuditPhase.BRANDING_FIRST: return <Palette size={size} />;
+    case AuditPhase.STRATEGY_FIRST: return <Brain size={size} />;
+    case AuditPhase.READY_FOR_WEB: return <Globe size={size} />;
+    case AuditPhase.READY_TO_SCALE: return <Rocket size={size} />;
+    default: return <Info size={size} />;
+  }
+};
 
 interface AuditReportProps {
   data: AuditInputData;
@@ -36,7 +47,7 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
   const handleDownload = async () => {
     if (reportRef.current) {
       const canvas = await html2canvas(reportRef.current, {
-        backgroundColor: '#000000', // Solid black for export
+        backgroundColor: '#000000',
         scale: 2,
       });
       const link = document.createElement('a');
@@ -49,9 +60,9 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
   const phaseInfo = PHASE_CONFIG[result.phase];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* Control Bar */}
-      <div className="flex justify-between items-center bg-zinc-900 p-4 rounded-xl border border-zinc-800 no-print">
+      <div className="flex justify-between items-center bg-zinc-900 p-4 rounded-xl border border-zinc-800 no-print sticky top-20 z-40 shadow-xl">
         <button onClick={onReset} className="text-zinc-400 hover:text-white text-sm font-medium">
           ← Nuevo Diagnóstico
         </button>
@@ -89,8 +100,8 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
           
           <div className={`md:col-span-2 rounded-2xl border p-8 flex flex-col justify-center relative overflow-hidden ${phaseInfo.bg} ${phaseInfo.border}`}>
              {/* Background Icon Watermark */}
-             <div className="absolute -right-4 -bottom-4 text-9xl opacity-10 select-none pointer-events-none">
-               {phaseInfo.icon}
+             <div className="absolute -right-4 -bottom-4 opacity-10 select-none pointer-events-none text-white">
+               {getPhaseIcon(result.phase, 160)}
              </div>
              
              <div className="relative z-10">
@@ -115,8 +126,7 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
         </div>
 
         {/* Detailed Breakdown */}
-        <div className="grid md:grid-cols-2 gap-12">
-          
+        <div className="grid md:grid-cols-2 gap-12 mb-16">
           {/* Visual Audit Column */}
           <div>
             <h3 className="text-xl font-light text-white mb-6 flex items-center gap-2">
@@ -150,11 +160,28 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
               ))}
             </div>
           </div>
+        </div>
 
+        {/* Phase Reference (Legend at bottom) */}
+        <div className="border-t border-zinc-800 pt-8 mb-8">
+          <h4 className="text-xs uppercase tracking-widest text-zinc-500 mb-4">Guía de Referencia: Etapas de Madurez</h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {(Object.entries(PHASE_CONFIG) as [AuditPhase, typeof PHASE_CONFIG[AuditPhase]][]).map(([key, config]) => (
+              <div key={key} className={`p-3 rounded border ${config.border} bg-zinc-900/20`}>
+                 <div className="flex items-center gap-2 mb-2">
+                   <div className={config.color}>
+                     {getPhaseIcon(key as AuditPhase, 18)}
+                   </div>
+                   <span className={`text-[10px] font-bold uppercase ${config.color}`}>{config.label.split(':')[0]}</span>
+                 </div>
+                 <p className="text-[10px] text-zinc-500 leading-tight">{config.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="mt-16 pt-8 border-t border-zinc-800 flex justify-between items-center text-xs text-zinc-500">
+        <div className="flex justify-between items-center text-xs text-zinc-600">
           <p>Generado por eyeroniq AI</p>
           <p>Diagnóstico Confidencial</p>
         </div>

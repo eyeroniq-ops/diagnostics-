@@ -88,10 +88,23 @@ export const analyzeBrandProject = async (data: AuditInputData): Promise<Analysi
     ${data.proposedServices.join(', ')}
 
     INSTRUCCIONES:
-    1. Calcula un Health Score (0-100). Penaliza fuertemente si faltan "Logo Vector", "Paleta" o "Tipografía". Penaliza si falta "Público Objetivo".
-    2. Determina la Fase (Phase) basada en la lógica del enum del esquema.
-    3. Proporciona observaciones específicas para CADA ítem del checklist (IDs Visuales y de Estrategia). Explica *por qué* impacta la puntuación.
-    4. Sé directo, profesional, y consultivo. Usa un tono experto pero accesible.
+    1. Calcula un Health Score (0-100). 
+       - Penaliza fuertemente (-15 puntos c/u) si el estado es NO o PARTIAL en: "Logo Principal", "Logo Vector", "Tipografía".
+       - Penaliza (-10 puntos) si falta "Público Objetivo".
+    
+    2. Determina la Fase (Phase). SIGUE ESTA LÓGICA ESTRICTA:
+       - Si el Score < 45 => DEBE SER "BRANDING_FIRST".
+       - Si falta 'Logo Principal' (v_logo_primary) O 'Nombre' (s_naming_check) O 'Manual de Marca' (v_brandbook) => DEBE SER "BRANDING_FIRST".
+       - Si falta 'Tipografía' (v_typography) => DEBE SER "BRANDING_FIRST".
+       - Solo si todos los activos críticos existen y el score es > 45, puedes considerar fases superiores (STRATEGY_FIRST, etc).
+
+    3. Genera el contenido:
+       - Headline: Impactante (máx 6 palabras).
+       - Summary: Resumen ejecutivo. Si es BRANDING_FIRST, menciona explícitamente que "Faltan activos visuales críticos y se debe construir la base antes de escalar".
+       - Observations: Específicas para CADA ítem del checklist. Explica el impacto en la puntuación.
+       - Recommended Services: Prioriza lo urgente según la fase detectada.
+
+    4. Tono: Directo, profesional, experto.
 
     Devuelve SOLO JSON válido que coincida con el esquema.
   `;
