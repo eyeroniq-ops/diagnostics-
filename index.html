@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>eyeroniq - Brand Audit AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // Polyfill for process to prevent "process is not defined" errors in browser
+      window.process = { env: { NODE_ENV: 'production' } };
+    </script>
     <style>
       /* Custom scrollbar for sleek look */
       ::-webkit-scrollbar {
