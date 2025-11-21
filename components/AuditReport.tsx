@@ -3,7 +3,9 @@ import React from 'react';
 import { AnalysisResult, AuditInputData, ChecklistItem, AuditPhase } from '../types';
 import { PHASE_CONFIG, VISUAL_CHECKLIST, STRATEGY_CHECKLIST, SERVICES_LIST } from '../constants';
 import GaugeChart from './GaugeChart';
-import { Check, X, AlertTriangle, Palette, Brain, Globe, Rocket, ArrowRight } from 'lucide-react';
+import { Check, X, AlertTriangle, Palette, Brain, Globe, Rocket, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const renderStatusIcon = (status?: string) => {
   if (status === 'YES') return <Check size={16} className="text-emerald-500" />;
@@ -32,6 +34,211 @@ interface AuditReportProps {
 export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset }) => {
   const phaseInfo = PHASE_CONFIG[result.phase];
 
+  const generatePDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    let yPos = 20;
+
+    // Colors
+    const primaryColor = [217, 70, 239]; // Fuchsia-500
+    const darkColor = [24, 24, 27]; // Zinc-900
+
+    // --- HEADER ---
+    doc.setFontSize(24);
+    doc.setFont("helvetica", "bold");
+    doc.text("eyeroniq", margin, yPos);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(150);
+    doc.text("BRAND DIAGNOSTIC REPORT", pageWidth - margin, yPos, { align: "right" });
+    
+    yPos += 15;
+    
+    // --- PROJECT TITLE & SCORE ---
+    doc.setDrawColor(230);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 15;
+
+    doc.setFontSize(18);
+    doc.setTextColor(0);
+    doc.text(data.projectName, margin, yPos);
+
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.text(`${result.phase.replace(/_/g, ' ')}`, margin, yPos + 7);
+
+    // Score Badge
+    doc.setFillColor(250, 250, 250);
+    doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.roundedRect(pageWidth - 45, yPos - 10, 30, 20, 3, 3, "FD");
+    
+    doc.setFontSize(22);
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${result.score}`, pageWidth - 30, yPos + 2, { align: "center" });
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text("SCORE", pageWidth - 30, yPos + 7, { align: "center" });
+
+    yPos += 25;
+
+    // --- SUMMARY ---
+    doc.setFontSize(14);
+    doc.setTextColor(0);
+    doc.setFont("helvetica", "bold");
+    doc.text("Executive Summary", margin, yPos);
+    yPos += 8;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(60);
+    const summaryLines = doc.splitTextToSize(result.summary, pageWidth - (margin * 2));
+    doc.text(summaryLines, margin, yPos);
+    yPos += (summaryLines.length * 5) + 10;
+
+    // --- RECOMMENDATIONS ---
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    doc.setFont("helvetica", "bold");
+    doc.text("Recommended Roadmap", margin, yPos);
+    yPos += 8;
+
+    // Using the roadmap labels directly
+    const recServices = result.recommendedServices;
+    
+    doc.setFontSize(10);
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text(recServices.join("  •  "), margin, yPos);
+    yPos += 15;
+
+    // --- TABLES ---
+    
+    const createTableData = (checklist: ChecklistItem[], sourceData: Record<string, string>) => {
+        return checklist.map(item => [
+            item.label,
+            sourceData[item.id] === 'YES' ? 'OPTIMAL' : (sourceData[item.id] === 'PARTIAL' ? 'PARTIAL' : 'MISSING'),
+            result.observations[item.id] || '-'
+        ]);
+    };
+
+    // Visual Table
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    doc.text("Visual Audit", margin, yPos);
+    yPos += 2;
+
+    autoTable(doc, {
+        startY: yPos,
+        head: [['Asset', 'Status', 'Observation']],
+        body: createTableData(VISUAL_CHECKLIST, data.visualAudit),
+        theme: 'grid',
+        headStyles: { fillColor: [40, 40, 40], textColor: 255 },
+        columnStyles: {
+            0: { fontStyle: 'bold', cellWidth: 50 },
+            1: { cellWidth: 30 },
+            2: { cellWidth: 'auto' }
+        },
+        didParseCell: (data) => {
+            if (data.section === 'body' && data.column.index === 1) {
+                const text = data.cell.raw as string;
+                if (text === 'MISSING') data.cell.styles.textColor = [220, 38, 38];
+                if (text === 'PARTIAL') data.cell.styles.textColor = [217, 119, 6];
+                if (text === 'OPTIMAL') data.cell.styles.textColor = [16, 185, 129];
+            }
+        }
+    });
+
+    // Strategy Table
+    // @ts-ignore
+    let finalY = doc.lastAutoTable.finalY + 15;
+    
+    if (finalY > 250) {
+        doc.addPage();
+        finalY = 20;
+    }
+
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    doc.text("Strategy Audit", margin, finalY);
+    finalY += 2;
+
+    autoTable(doc, {
+        startY: finalY,
+        head: [['Component', 'Status', 'Observation']],
+        body: createTableData(STRATEGY_CHECKLIST, data.strategyAudit),
+        theme: 'grid',
+        headStyles: { fillColor: [40, 40, 40], textColor: 255 },
+        columnStyles: {
+            0: { fontStyle: 'bold', cellWidth: 50 },
+            1: { cellWidth: 30 },
+            2: { cellWidth: 'auto' }
+        },
+        didParseCell: (data) => {
+            if (data.section === 'body' && data.column.index === 1) {
+                const text = data.cell.raw as string;
+                if (text === 'MISSING') data.cell.styles.textColor = [220, 38, 38];
+                if (text === 'PARTIAL') data.cell.styles.textColor = [217, 119, 6];
+                if (text === 'OPTIMAL') data.cell.styles.textColor = [16, 185, 129];
+            }
+        }
+    });
+
+    // --- SEMÁFORO DE MADUREZ (MATURITY SEMAPHORE) ---
+    // @ts-ignore
+    finalY = doc.lastAutoTable.finalY + 20;
+
+    // Check if we need a new page for the legend
+    if (finalY > 240) {
+        doc.addPage();
+        finalY = 20;
+    }
+
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    doc.setFont("helvetica", "bold");
+    doc.text("SEMÁFORO DE MADUREZ (MATURITY LEVEL)", margin, finalY);
+    finalY += 10;
+
+    const phases = [
+        { color: [217, 70, 239], label: 'Branding First', desc: 'Fundamental assets missing. Build identity.' }, // Fuchsia
+        { color: [139, 92, 246], label: 'Strategy First', desc: 'Visuals exist but lack direction.' }, // Violet
+        { color: [34, 211, 238], label: 'Ready for Web', desc: 'Solid foundation. Ready for digital.' }, // Cyan
+        { color: [52, 211, 153], label: 'Ready to Scale', desc: 'Systems go. Focus on growth.' }, // Emerald
+    ];
+
+    phases.forEach((phase, index) => {
+        const rowY = finalY + (index * 12);
+        
+        // Draw colored box
+        doc.setFillColor(phase.color[0], phase.color[1], phase.color[2]);
+        doc.rect(margin, rowY, 4, 4, 'F');
+
+        // Label
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(60);
+        doc.text(phase.label, margin + 8, rowY + 3);
+
+        // Desc
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100);
+        doc.text(phase.desc, margin + 50, rowY + 3);
+    });
+
+    // Footer
+    const pageCount = doc.getNumberOfPages();
+    for(let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`Generated by eyeroniq - Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+    }
+
+    doc.save(`${data.projectName.replace(/\s+/g, '_')}_Audit_Report.pdf`);
+  };
+
   return (
     <div className="space-y-8 animate-fade-in pb-20">
       {/* Header Section */}
@@ -45,7 +252,14 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
           </div>
           <p className="text-zinc-400 max-w-2xl">{result.headline}</p>
         </div>
-        <div className="text-right">
+        <div className="flex flex-col gap-2 items-end">
+            <button 
+                onClick={generatePDF}
+                className="flex items-center gap-2 bg-zinc-100 hover:bg-white text-black px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-lg shadow-zinc-900/20"
+            >
+                <Download size={16} />
+                Export PDF
+            </button>
             <button onClick={onReset} className="text-sm text-zinc-500 hover:text-white transition-colors underline underline-offset-4">
                 Start New Audit
             </button>
@@ -76,14 +290,11 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
             <div>
                 <h4 className="text-xs font-bold uppercase text-zinc-500 mb-3 tracking-wider">Recommended Roadmap</h4>
                 <div className="flex flex-wrap gap-2">
-                    {result.recommendedServices.map(svcId => {
-                        const svc = SERVICES_LIST.find(s => s.id === svcId);
-                        return svc ? (
-                            <span key={svcId} className="px-3 py-1.5 bg-fuchsia-500/10 border border-fuchsia-500/20 text-fuchsia-300 text-xs rounded-md font-medium flex items-center gap-1">
-                                {svc.label}
-                            </span>
-                        ) : null;
-                    })}
+                    {result.recommendedServices.map((service, idx) => (
+                        <span key={idx} className="px-3 py-1.5 bg-fuchsia-500/10 border border-fuchsia-500/20 text-fuchsia-300 text-xs rounded-md font-medium flex items-center gap-1">
+                            {service}
+                        </span>
+                    ))}
                 </div>
             </div>
         </div>
