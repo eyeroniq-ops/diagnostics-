@@ -3,9 +3,9 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult, AuditInputData, AuditPhase } from "../types";
 import { VISUAL_CHECKLIST, STRATEGY_CHECKLIST, SERVICES_LIST } from "../constants";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export const analyzeBrandProject = async (data: AuditInputData): Promise<AnalysisResult> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  
   const checklistIds = [...VISUAL_CHECKLIST, ...STRATEGY_CHECKLIST].map(i => i.id).join(", ");
   const serviceIds = SERVICES_LIST.map(s => s.id).join(", ");
 
