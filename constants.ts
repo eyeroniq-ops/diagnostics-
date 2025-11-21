@@ -110,6 +110,7 @@ export const STRATEGY_CHECKLIST: ChecklistItem[] = [
 ];
 
 export const RISKS_LIST: ChecklistItem[] = [
+  { id: 'r_none', label: 'Ninguno', category: 'risk' },
   { id: 'r_budget', label: 'Presupuesto Limitado', category: 'risk' },
   { id: 'r_expectations', label: 'Expectativas Irrealistas', category: 'risk' },
   { id: 'r_indecision', label: 'Falta de Decisión', category: 'risk' },
@@ -142,31 +143,31 @@ export const SERVICES_LIST: ChecklistItem[] = [
 
 export const PHASE_CONFIG = {
   [AuditPhase.BRANDING_FIRST]: {
-    label: 'Branding First',
+    label: 'Prioridad Branding',
     color: 'text-fuchsia-500',
     bg: 'bg-fuchsia-500/10',
     border: 'border-fuchsia-500/20',
-    desc: 'Fundamental assets missing. Must build identity before scaling.',
+    desc: 'Faltan activos fundamentales. Se debe construir la identidad antes de escalar.',
   },
   [AuditPhase.STRATEGY_FIRST]: {
-    label: 'Strategy First',
+    label: 'Prioridad Estrategia',
     color: 'text-violet-500',
     bg: 'bg-violet-500/10',
     border: 'border-violet-500/20',
-    desc: 'Visuals exist but lack direction. Requires strategic alignment.',
+    desc: 'Existen visuales pero falta dirección. Requiere alineación estratégica.',
   },
   [AuditPhase.READY_FOR_WEB]: {
-    label: 'Ready for Web',
+    label: 'Listo para Web',
     color: 'text-cyan-400',
     bg: 'bg-cyan-400/10',
     border: 'border-cyan-400/20',
-    desc: 'Solid foundation. Ready for digital implementation.',
+    desc: 'Base sólida. Listo para implementación digital.',
   },
   [AuditPhase.READY_TO_SCALE]: {
-    label: 'Ready to Scale',
+    label: 'Listo para Escalar',
     color: 'text-emerald-400', 
     bg: 'bg-emerald-400/10',
     border: 'border-emerald-400/20',
-    desc: 'Systems go. Focus on growth, ads, and automation.',
+    desc: 'Sistemas listos. Enfoque en crecimiento, anuncios y automatización.',
   },
 };

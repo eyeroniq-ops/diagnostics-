@@ -1,6 +1,6 @@
 
 import { AnalysisResult, AuditInputData, AuditPhase, AssetStatus } from "../types";
-import { VISUAL_CHECKLIST, STRATEGY_CHECKLIST } from "../constants";
+import { VISUAL_CHECKLIST, STRATEGY_CHECKLIST, PHASE_CONFIG } from "../constants";
 
 // Local logic implementation to replace Gemini API
 export const analyzeBrandProject = async (data: AuditInputData): Promise<AnalysisResult> => {
@@ -65,20 +65,26 @@ export const analyzeBrandProject = async (data: AuditInputData): Promise<Analysi
   }
 
   // --- 3. Risk Calculation (Updated for Accuracy) ---
-  // Count explicitly checked risks PLUS missing critical assets (NO)
+  // Count explicitly checked risks (excluding 'None'), missing assets (NO), AND partial assets (as minor risks)
   const missingAssetsCount = 
     Object.values(data.visualAudit).filter(v => v === 'NO').length +
     Object.values(data.strategyAudit).filter(v => v === 'NO').length;
 
-  const totalRiskCount = data.risks.length + missingAssetsCount;
+  const partialAssetsCount = 
+    Object.values(data.visualAudit).filter(v => v === 'PARTIAL').length +
+    Object.values(data.strategyAudit).filter(v => v === 'PARTIAL').length;
+
+  // Total "Risk Factors" = Selected Risks + Missing Assets + Partial Assets
+  const activeRisks = data.risks.filter(r => r !== 'r_none');
+  const totalRiskCount = activeRisks.length + missingAssetsCount + partialAssetsCount;
 
   let riskLevel = "bajo";
-  if (totalRiskCount > 7) riskLevel = "crítico";
-  else if (totalRiskCount > 4) riskLevel = "alto";
-  else if (totalRiskCount > 1) riskLevel = "moderado";
+  if (totalRiskCount > 10) riskLevel = "crítico";
+  else if (totalRiskCount > 5) riskLevel = "alto";
+  else if (totalRiskCount > 2) riskLevel = "moderado";
 
-  // --- 4. Generate Roadmap (Restricted Categories) ---
-  // Categories: "Branding", "Rebranding", "Web", "Social Media", "IA y Automatización", "Creación de Contenido", "Diseños"
+  // --- 4. Generate Roadmap (Strict Categories) ---
+  // Allowed: "Branding", "Rebranding", "Web", "Social Media", "IA y Automatización", "Creación de Contenido", "Diseños"
   
   const roadmap: string[] = [];
 
@@ -102,15 +108,16 @@ export const analyzeBrandProject = async (data: AuditInputData): Promise<Analysi
   }
 
   // Logic for Content & Social
-  const needsGrowth = phase === AuditPhase.READY_TO_SCALE || phase === AuditPhase.READY_FOR_WEB || data.objectives.includes('o_awareness') || data.objectives.includes('o_leads');
-  if (needsGrowth && score > 50) {
+  // If score is decent and user wants growth
+  const needsGrowth = (phase === AuditPhase.READY_TO_SCALE || phase === AuditPhase.READY_FOR_WEB || data.objectives.includes('o_awareness') || data.objectives.includes('o_leads')) && score > 40;
+  if (needsGrowth) {
       roadmap.push("Social Media");
       roadmap.push("Creación de Contenido");
   }
 
   // Logic for AI & Automation
   const needsScale = phase === AuditPhase.READY_TO_SCALE || data.objectives.includes('o_sales') || data.objectives.includes('o_market');
-  if (needsScale && score > 60) {
+  if (needsScale && score > 55) {
       roadmap.push("IA y Automatización");
   }
 
@@ -148,9 +155,10 @@ export const analyzeBrandProject = async (data: AuditInputData): Promise<Analysi
   });
 
   // --- 6. Generate Summary ---
+  const phaseLabel = PHASE_CONFIG[phase].label;
   const summary = `El diagnóstico de ${data.projectName} indica una madurez de marca del ${score}%.
   
-  Actualmente se sitúa en la etapa "${phase.replace(/_/g, ' ')}". Detectamos ${totalRiskCount} puntos de atención (riesgos declarados y elementos faltantes) generando un nivel de riesgo ${riskLevel}.
+  Actualmente se sitúa en la etapa "${phaseLabel}". Detectamos ${totalRiskCount} factores de riesgo (activos faltantes, parciales o riesgos declarados), generando un nivel de riesgo ${riskLevel}.
   
   La hoja de ruta recomendada se centra en: ${uniqueRoadmap.join(', ')}.
   ${needsRebrand ? "El Rebranding es la prioridad absoluta para corregir la deuda técnica de la marca." : ""}

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { AuditInputData, AssetStatus, ChecklistItem } from '../types';
 import { 
@@ -35,6 +36,24 @@ export const AuditForm: React.FC<AuditFormProps> = ({ onSubmit }) => {
   const toggleList = (category: 'risks' | 'objectives' | 'proposedServices', value: string) => {
     setFormData(prev => {
       const list = prev[category];
+
+      if (category === 'risks') {
+        if (value === 'r_none') {
+            // If clicking 'Ninguno', clear others and select 'Ninguno' (or deselect if already selected)
+            return { ...prev, risks: list.includes('r_none') ? [] : ['r_none'] };
+        } else {
+            // If clicking a normal risk, remove 'Ninguno' if present
+            const listWithoutNone = list.filter(item => item !== 'r_none');
+            
+            if (listWithoutNone.includes(value)) {
+                return { ...prev, risks: listWithoutNone.filter(item => item !== value) };
+            } else {
+                return { ...prev, risks: [...listWithoutNone, value] };
+            }
+        }
+      }
+
+      // Default behavior for other categories
       if (list.includes(value)) {
         return { ...prev, [category]: list.filter(item => item !== value) };
       }
@@ -51,9 +70,15 @@ export const AuditForm: React.FC<AuditFormProps> = ({ onSubmit }) => {
     return visualComplete && strategyComplete;
   }, [formData.visualAudit, formData.strategyAudit]);
 
+  const isStep3Valid = formData.risks.length > 0 && formData.objectives.length > 0;
+  
+  const isStep4Valid = formData.proposedServices.length > 0;
+
   const isNextDisabled = () => {
     if (step === 1) return !isStep1Valid;
     if (step === 2) return !isStep2Valid;
+    if (step === 3) return !isStep3Valid;
+    if (step === 4) return !isStep4Valid;
     return false;
   };
 
@@ -215,8 +240,18 @@ export const AuditForm: React.FC<AuditFormProps> = ({ onSubmit }) => {
 
         {step === 3 && (
           <div className="space-y-6 animate-fade-in">
-            <h2 className="text-2xl font-light text-white">Riesgos & Objetivos</h2>
-            <p className="text-zinc-400 text-sm">Identifica cuellos de botella y metas del cliente.</p>
+            <div className="flex justify-between items-end">
+              <div>
+                <h2 className="text-2xl font-light text-white">Riesgos & Objetivos</h2>
+                <p className="text-zinc-400 text-sm">Identifica cuellos de botella y metas del cliente.</p>
+              </div>
+              {!isStep3Valid && (
+                <div className="flex items-center gap-2 text-amber-500 text-xs font-medium bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+                  <AlertCircle size={12} />
+                  Selecciona al menos 1 de cada uno
+                </div>
+              )}
+            </div>
 
             <div className="space-y-6">
               <div>
@@ -238,8 +273,18 @@ export const AuditForm: React.FC<AuditFormProps> = ({ onSubmit }) => {
 
         {step === 4 && (
           <div className="space-y-6 animate-fade-in">
-            <h2 className="text-2xl font-light text-white">Alcance Propuesto</h2>
-            <p className="text-zinc-400 text-sm">¿Qué servicios se están considerando inicialmente?</p>
+            <div className="flex justify-between items-end">
+              <div>
+                <h2 className="text-2xl font-light text-white">Alcance Propuesto</h2>
+                <p className="text-zinc-400 text-sm">¿Qué servicios se están considerando inicialmente?</p>
+              </div>
+              {!isStep4Valid && (
+                <div className="flex items-center gap-2 text-amber-500 text-xs font-medium bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+                  <AlertCircle size={12} />
+                  Selecciona al menos 1 servicio
+                </div>
+              )}
+            </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {SERVICES_LIST.map(item => <RenderMultiSelect key={item.id} item={item} listName="proposedServices" />)}
@@ -270,7 +315,8 @@ export const AuditForm: React.FC<AuditFormProps> = ({ onSubmit }) => {
           ) : (
             <button 
               onClick={() => onSubmit(formData)}
-              className="bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white px-8 py-2 rounded-lg font-bold shadow-lg shadow-fuchsia-500/20 hover:shadow-fuchsia-500/40 transition-all"
+              disabled={isNextDisabled()}
+              className="bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white px-8 py-2 rounded-lg font-bold shadow-lg shadow-fuchsia-500/20 hover:shadow-fuchsia-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Generar Diagnóstico
             </button>

@@ -20,7 +20,7 @@ const AuditItemDetail: React.FC<{ item: ChecklistItem, status: string, observati
       {renderStatusIcon(status)}
     </div>
     <p className="text-xs text-zinc-500 leading-relaxed">
-      {observation || "No specific observation available."}
+      {observation || "No hay observaciones disponibles."}
     </p>
   </div>
 );
@@ -52,7 +52,7 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(150);
-    doc.text("BRAND DIAGNOSTIC REPORT", pageWidth - margin, yPos, { align: "right" });
+    doc.text("REPORTE DE DIAGNÓSTICO", pageWidth - margin, yPos, { align: "right" });
     
     yPos += 15;
     
@@ -67,7 +67,7 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
 
     doc.setFontSize(12);
     doc.setTextColor(100);
-    doc.text(`${result.phase.replace(/_/g, ' ')}`, margin, yPos + 7);
+    doc.text(`${PHASE_CONFIG[result.phase].label}`, margin, yPos + 7);
 
     // Score Badge
     doc.setFillColor(250, 250, 250);
@@ -80,7 +80,7 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
     doc.text(`${result.score}`, pageWidth - 30, yPos + 2, { align: "center" });
     doc.setFontSize(8);
     doc.setTextColor(100);
-    doc.text("SCORE", pageWidth - 30, yPos + 7, { align: "center" });
+    doc.text("PUNTAJE", pageWidth - 30, yPos + 7, { align: "center" });
 
     yPos += 25;
 
@@ -88,7 +88,7 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
     doc.setFontSize(14);
     doc.setTextColor(0);
     doc.setFont("helvetica", "bold");
-    doc.text("Executive Summary", margin, yPos);
+    doc.text("Resumen Ejecutivo", margin, yPos);
     yPos += 8;
 
     doc.setFontSize(10);
@@ -102,7 +102,7 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
     doc.setFontSize(12);
     doc.setTextColor(0);
     doc.setFont("helvetica", "bold");
-    doc.text("Recommended Roadmap", margin, yPos);
+    doc.text("Hoja de Ruta Recomendada", margin, yPos);
     yPos += 8;
 
     // Using the roadmap labels directly
@@ -118,7 +118,7 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
     const createTableData = (checklist: ChecklistItem[], sourceData: Record<string, string>) => {
         return checklist.map(item => [
             item.label,
-            sourceData[item.id] === 'YES' ? 'OPTIMAL' : (sourceData[item.id] === 'PARTIAL' ? 'PARTIAL' : 'MISSING'),
+            sourceData[item.id] === 'YES' ? 'ÓPTIMO' : (sourceData[item.id] === 'PARTIAL' ? 'PARCIAL' : 'FALTANTE'),
             result.observations[item.id] || '-'
         ]);
     };
@@ -126,12 +126,12 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
     // Visual Table
     doc.setFontSize(12);
     doc.setTextColor(0);
-    doc.text("Visual Audit", margin, yPos);
+    doc.text("Auditoría Visual", margin, yPos);
     yPos += 2;
 
     autoTable(doc, {
         startY: yPos,
-        head: [['Asset', 'Status', 'Observation']],
+        head: [['Activo', 'Estado', 'Observación']],
         body: createTableData(VISUAL_CHECKLIST, data.visualAudit),
         theme: 'grid',
         headStyles: { fillColor: [40, 40, 40], textColor: 255 },
@@ -143,9 +143,9 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
         didParseCell: (data) => {
             if (data.section === 'body' && data.column.index === 1) {
                 const text = data.cell.raw as string;
-                if (text === 'MISSING') data.cell.styles.textColor = [220, 38, 38];
-                if (text === 'PARTIAL') data.cell.styles.textColor = [217, 119, 6];
-                if (text === 'OPTIMAL') data.cell.styles.textColor = [16, 185, 129];
+                if (text === 'FALTANTE') data.cell.styles.textColor = [220, 38, 38];
+                if (text === 'PARCIAL') data.cell.styles.textColor = [217, 119, 6];
+                if (text === 'ÓPTIMO') data.cell.styles.textColor = [16, 185, 129];
             }
         }
     });
@@ -161,12 +161,12 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
 
     doc.setFontSize(12);
     doc.setTextColor(0);
-    doc.text("Strategy Audit", margin, finalY);
+    doc.text("Auditoría Estratégica", margin, finalY);
     finalY += 2;
 
     autoTable(doc, {
         startY: finalY,
-        head: [['Component', 'Status', 'Observation']],
+        head: [['Componente', 'Estado', 'Observación']],
         body: createTableData(STRATEGY_CHECKLIST, data.strategyAudit),
         theme: 'grid',
         headStyles: { fillColor: [40, 40, 40], textColor: 255 },
@@ -178,9 +178,9 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
         didParseCell: (data) => {
             if (data.section === 'body' && data.column.index === 1) {
                 const text = data.cell.raw as string;
-                if (text === 'MISSING') data.cell.styles.textColor = [220, 38, 38];
-                if (text === 'PARTIAL') data.cell.styles.textColor = [217, 119, 6];
-                if (text === 'OPTIMAL') data.cell.styles.textColor = [16, 185, 129];
+                if (text === 'FALTANTE') data.cell.styles.textColor = [220, 38, 38];
+                if (text === 'PARCIAL') data.cell.styles.textColor = [217, 119, 6];
+                if (text === 'ÓPTIMO') data.cell.styles.textColor = [16, 185, 129];
             }
         }
     });
@@ -198,14 +198,14 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
     doc.setFontSize(12);
     doc.setTextColor(0);
     doc.setFont("helvetica", "bold");
-    doc.text("SEMÁFORO DE MADUREZ (MATURITY LEVEL)", margin, finalY);
+    doc.text("SEMÁFORO DE MADUREZ (ETAPAS)", margin, finalY);
     finalY += 10;
 
     const phases = [
-        { color: [217, 70, 239], label: 'Branding First', desc: 'Fundamental assets missing. Build identity.' }, // Fuchsia
-        { color: [139, 92, 246], label: 'Strategy First', desc: 'Visuals exist but lack direction.' }, // Violet
-        { color: [34, 211, 238], label: 'Ready for Web', desc: 'Solid foundation. Ready for digital.' }, // Cyan
-        { color: [52, 211, 153], label: 'Ready to Scale', desc: 'Systems go. Focus on growth.' }, // Emerald
+        { color: [217, 70, 239], label: 'Prioridad Branding', desc: 'Faltan activos fundamentales. Construir identidad.' }, // Fuchsia
+        { color: [139, 92, 246], label: 'Prioridad Estrategia', desc: 'Visuales existen pero falta dirección.' }, // Violet
+        { color: [34, 211, 238], label: 'Listo para Web', desc: 'Base sólida. Listo para digital.' }, // Cyan
+        { color: [52, 211, 153], label: 'Listo para Escalar', desc: 'Sistemas listos. Enfoque en crecimiento.' }, // Emerald
     ];
 
     phases.forEach((phase, index) => {
@@ -233,10 +233,10 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
         doc.setPage(i);
         doc.setFontSize(8);
         doc.setTextColor(150);
-        doc.text(`Generated by eyeroniq - Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+        doc.text(`Generado por eyeroniq - Página ${i} de ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
     }
 
-    doc.save(`${data.projectName.replace(/\s+/g, '_')}_Audit_Report.pdf`);
+    doc.save(`${data.projectName.replace(/\s+/g, '_')}_Reporte_Auditoria.pdf`);
   };
 
   return (
@@ -258,10 +258,10 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
                 className="flex items-center gap-2 bg-zinc-100 hover:bg-white text-black px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-lg shadow-zinc-900/20"
             >
                 <Download size={16} />
-                Export PDF
+                Exportar PDF
             </button>
             <button onClick={onReset} className="text-sm text-zinc-500 hover:text-white transition-colors underline underline-offset-4">
-                Start New Audit
+                Nueva Auditoría
             </button>
         </div>
       </div>
@@ -274,21 +274,21 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
              <GaugeChart score={result.score} />
           </div>
           <div className="mt-4 text-center">
-            <h3 className="text-zinc-500 text-xs uppercase tracking-widest font-semibold">Brand Health Score</h3>
+            <h3 className="text-zinc-500 text-xs uppercase tracking-widest font-semibold">Puntuación de Marca</h3>
           </div>
         </div>
 
         <div className="lg:col-span-2 bg-zinc-900/30 border border-zinc-800 rounded-2xl p-8">
             <h3 className="text-lg font-light text-white mb-4 flex items-center gap-2">
                 <Brain className="text-fuchsia-500" size={20} />
-                Executive Summary
+                Resumen Ejecutivo
             </h3>
             <p className="text-zinc-300 leading-relaxed whitespace-pre-line mb-6">
                 {result.summary}
             </p>
             
             <div>
-                <h4 className="text-xs font-bold uppercase text-zinc-500 mb-3 tracking-wider">Recommended Roadmap</h4>
+                <h4 className="text-xs font-bold uppercase text-zinc-500 mb-3 tracking-wider">Hoja de Ruta Recomendada</h4>
                 <div className="flex flex-wrap gap-2">
                     {result.recommendedServices.map((service, idx) => (
                         <span key={idx} className="px-3 py-1.5 bg-fuchsia-500/10 border border-fuchsia-500/20 text-fuchsia-300 text-xs rounded-md font-medium flex items-center gap-1">
@@ -305,7 +305,7 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
         <div className="space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <Palette className="text-cyan-400" size={20} />
-            <h3 className="text-xl font-light text-white">Visual Analysis</h3>
+            <h3 className="text-xl font-light text-white">Auditoría Visual</h3>
           </div>
           <div className="grid gap-3">
             {VISUAL_CHECKLIST.map(item => (
@@ -322,7 +322,7 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
         <div className="space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <Globe className="text-violet-400" size={20} />
-            <h3 className="text-xl font-light text-white">Strategy Analysis</h3>
+            <h3 className="text-xl font-light text-white">Auditoría Estratégica</h3>
           </div>
           <div className="grid gap-3">
             {STRATEGY_CHECKLIST.map(item => (
