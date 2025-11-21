@@ -8,30 +8,30 @@ import { Download, Printer, Check, X, AlertTriangle, Palette, Brain, Globe, Rock
 
 // Helper components
 const renderStatusIcon = (status?: string) => {
-  if (status === 'YES') return <Check size={16} className="text-fuchsia-400" />;
-  if (status === 'PARTIAL') return <AlertTriangle size={16} className="text-yellow-400" />;
-  return <X size={16} className="text-zinc-600" />;
+  if (status === 'YES') return <Check size={14} className="text-emerald-600" />;
+  if (status === 'PARTIAL') return <AlertTriangle size={14} className="text-amber-500" />;
+  return <X size={14} className="text-red-500" />;
 };
 
 const AuditItemDetail: React.FC<{ item: ChecklistItem, status: string, observation: string }> = ({ item, status, observation }) => (
-  <div className="mb-4 p-3 bg-zinc-900/50 rounded border border-zinc-800 break-inside-avoid">
-    <div className="flex items-center justify-between mb-2">
-      <span className="text-zinc-200 font-medium text-sm">{item.label}</span>
+  <div className="mb-3 pb-3 border-b border-zinc-100 last:border-0 break-inside-avoid">
+    <div className="flex items-center justify-between mb-1">
+      <span className="text-zinc-900 font-semibold text-xs uppercase tracking-wide">{item.label}</span>
       {renderStatusIcon(status)}
     </div>
-    <p className="text-xs text-zinc-400 leading-relaxed border-l-2 border-zinc-700 pl-2">
-      {observation || "Sin observación específica."}
+    <p className="text-[11px] text-zinc-600 leading-snug">
+      {observation}
     </p>
   </div>
 );
 
-const getPhaseIcon = (phase: AuditPhase, size: number = 24) => {
+const getPhaseIcon = (phase: AuditPhase, size: number = 24, className: string = "") => {
   switch (phase) {
-    case AuditPhase.BRANDING_FIRST: return <Palette size={size} />;
-    case AuditPhase.STRATEGY_FIRST: return <Brain size={size} />;
-    case AuditPhase.READY_FOR_WEB: return <Globe size={size} />;
-    case AuditPhase.READY_TO_SCALE: return <Rocket size={size} />;
-    default: return <Info size={size} />;
+    case AuditPhase.BRANDING_FIRST: return <Palette size={size} className={className} />;
+    case AuditPhase.STRATEGY_FIRST: return <Brain size={size} className={className} />;
+    case AuditPhase.READY_FOR_WEB: return <Globe size={size} className={className} />;
+    case AuditPhase.READY_TO_SCALE: return <Rocket size={size} className={className} />;
+    default: return <Info size={size} className={className} />;
   }
 };
 
@@ -47,11 +47,13 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
   const handleDownload = async () => {
     if (reportRef.current) {
       const canvas = await html2canvas(reportRef.current, {
-        backgroundColor: '#000000',
         scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff', // Force white background
+        windowWidth: 1200 // Ensure consistency
       });
       const link = document.createElement('a');
-      link.download = `${data.projectName.replace(/\s+/g, '_')}_Reporte.png`;
+      link.download = `Reporte_${data.projectName.replace(/\s+/g, '_')}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
     }
@@ -60,9 +62,9 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
   const phaseInfo = PHASE_CONFIG[result.phase];
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in flex flex-col items-center">
       {/* Control Bar */}
-      <div className="flex justify-between items-center bg-zinc-900 p-4 rounded-xl border border-zinc-800 no-print sticky top-20 z-40 shadow-xl">
+      <div className="w-full max-w-4xl flex justify-between items-center bg-zinc-900 p-4 rounded-xl border border-zinc-800 no-print sticky top-20 z-40 shadow-xl">
         <button onClick={onReset} className="text-zinc-400 hover:text-white text-sm font-medium">
           ← Nuevo Diagnóstico
         </button>
@@ -70,120 +72,121 @@ export const AuditReport: React.FC<AuditReportProps> = ({ data, result, onReset 
           <button onClick={() => window.print()} className="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white transition">
             <Printer size={20} />
           </button>
-          <button onClick={handleDownload} className="flex items-center gap-2 bg-fuchsia-700 hover:bg-fuchsia-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-lg shadow-fuchsia-900/20">
-            <Download size={16} /> Exportar PNG
+          <button onClick={handleDownload} className="flex items-center gap-2 bg-white hover:bg-zinc-200 text-black px-4 py-2 rounded-lg text-sm font-bold transition">
+            <Download size={16} /> Descargar Informe
           </button>
         </div>
       </div>
 
-      {/* Printable Area */}
-      <div ref={reportRef} className="bg-black p-8 md:p-12 print-bg-fix text-zinc-200 min-h-screen">
-        
-        {/* Header */}
-        <div className="flex justify-between items-start mb-12 border-b border-zinc-800 pb-8">
-          <div>
-            <h4 className="text-fuchsia-500 text-sm font-bold tracking-widest uppercase mb-2">eyeroniq Auditoría</h4>
-            <h1 className="text-4xl md:text-5xl font-light text-white mb-2">{data.projectName}</h1>
-            <p className="text-zinc-400 max-w-xl">{result.headline}</p>
-          </div>
-          <div className="text-right">
-            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Fecha</div>
-            <div className="text-white font-mono">{new Date().toLocaleDateString('es-ES')}</div>
-          </div>
-        </div>
-
-        {/* Hero Section: Score & Verdict */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-          <div className="md:col-span-1 bg-zinc-900/30 rounded-2xl border border-zinc-800 p-6 flex flex-col items-center justify-center">
-            <GaugeChart score={result.score} />
-          </div>
+      {/* Printable Document Container */}
+      <div className="w-full max-w-[210mm] bg-zinc-800/50 p-4 md:p-0 flex justify-center">
+        {/* Actual Paper Sheet */}
+        <div 
+          ref={reportRef} 
+          className="bg-white text-black w-full max-w-[210mm] min-h-[297mm] p-10 shadow-2xl relative overflow-hidden"
+          style={{ fontFamily: 'Inter, sans-serif' }}
+        >
           
-          <div className={`md:col-span-2 rounded-2xl border p-8 flex flex-col justify-center relative overflow-hidden ${phaseInfo.bg} ${phaseInfo.border}`}>
-             {/* Background Icon Watermark */}
-             <div className="absolute -right-4 -bottom-4 opacity-10 select-none pointer-events-none text-white">
-               {getPhaseIcon(result.phase, 160)}
-             </div>
-             
-             <div className="relative z-10">
-                <h3 className={`text-sm font-bold uppercase tracking-widest mb-2 ${phaseInfo.color}`}>
-                  Veredicto Estratégico
-                </h3>
-                <h2 className="text-3xl font-bold text-white mb-4">{phaseInfo.label}</h2>
-                <p className="text-zinc-300 leading-relaxed mb-6">{result.summary}</p>
-                
-                <div className="flex flex-wrap gap-2">
-                  {result.recommendedServices.map(svcId => {
-                    const svc = SERVICES_LIST.find(s => s.id === svcId);
-                    return svc ? (
-                      <span key={svcId} className="px-3 py-1 rounded-full bg-black/50 border border-zinc-700 text-xs text-zinc-300">
-                        + {svc.label}
-                      </span>
-                    ) : null;
-                  })}
-                </div>
-             </div>
-          </div>
-        </div>
-
-        {/* Detailed Breakdown */}
-        <div className="grid md:grid-cols-2 gap-12 mb-16">
-          {/* Visual Audit Column */}
-          <div>
-            <h3 className="text-xl font-light text-white mb-6 flex items-center gap-2">
-              <span className="text-fuchsia-500">///</span> Fundación Visual
-            </h3>
-            <div className="space-y-2">
-              {VISUAL_CHECKLIST.map(item => (
-                <AuditItemDetail 
-                  key={item.id}
-                  item={item}
-                  status={data.visualAudit[item.id] || 'NO'}
-                  observation={result.observations[item.id]}
-                />
-              ))}
+          {/* Formal Header */}
+          <div className="flex justify-between items-end border-b-2 border-zinc-900 pb-6 mb-8">
+            <div>
+              <h1 className="text-4xl font-bold tracking-tight text-zinc-900 uppercase mb-1">{data.projectName}</h1>
+              <div className="text-xs font-medium text-zinc-500 uppercase tracking-widest">Reporte de Auditoría de Marca</div>
+            </div>
+            <div className="text-right">
+               <div className="text-2xl font-bold text-zinc-900">eyeroniq</div>
+               <div className="text-xs text-zinc-500">{new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
             </div>
           </div>
 
-          {/* Strategy Audit Column */}
-          <div>
-            <h3 className="text-xl font-light text-white mb-6 flex items-center gap-2">
-              <span className="text-violet-500">///</span> Claridad Estratégica
-            </h3>
-            <div className="space-y-2">
-              {STRATEGY_CHECKLIST.map(item => (
-                <AuditItemDetail 
-                  key={item.id}
-                  item={item}
-                  status={data.strategyAudit[item.id] || 'NO'}
-                  observation={result.observations[item.id]}
-                />
-              ))}
+          {/* Executive Summary Box */}
+          <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-6 mb-10 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10 text-zinc-900">
+              {getPhaseIcon(result.phase, 100)}
             </div>
-          </div>
-        </div>
-
-        {/* Phase Reference (Legend at bottom) */}
-        <div className="border-t border-zinc-800 pt-8 mb-8">
-          <h4 className="text-xs uppercase tracking-widest text-zinc-500 mb-4">Guía de Referencia: Etapas de Madurez</h4>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {(Object.entries(PHASE_CONFIG) as [AuditPhase, typeof PHASE_CONFIG[AuditPhase]][]).map(([key, config]) => (
-              <div key={key} className={`p-3 rounded border ${config.border} bg-zinc-900/20`}>
-                 <div className="flex items-center gap-2 mb-2">
-                   <div className={config.color}>
-                     {getPhaseIcon(key as AuditPhase, 18)}
-                   </div>
-                   <span className={`text-[10px] font-bold uppercase ${config.color}`}>{config.label.split(':')[0]}</span>
+            
+            <div className="grid grid-cols-4 gap-6 relative z-10">
+               {/* Score */}
+               <div className="col-span-1 flex flex-col items-center justify-center border-r border-zinc-200 pr-6">
+                 <div className="relative w-full h-32">
+                    <GaugeChart score={result.score} />
                  </div>
-                 <p className="text-[10px] text-zinc-500 leading-tight">{config.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+                 {/* Override Chart colors via CSS filters or assume standard looks OK. 
+                     Ideally we should pass a theme, but for now, let's just show the value clearly below if needed */}
+               </div>
 
-        {/* Footer */}
-        <div className="flex justify-between items-center text-xs text-zinc-600">
-          <p>Generado por eyeroniq AI</p>
-          <p>Diagnóstico Confidencial</p>
+               {/* Text Summary */}
+               <div className="col-span-3 pl-2">
+                 <h3 className={`text-sm font-bold uppercase mb-2 ${phaseInfo.color}`}>
+                   Veredicto: {phaseInfo.label}
+                 </h3>
+                 <p className="text-zinc-700 text-sm leading-relaxed font-medium mb-4">
+                   {result.summary}
+                 </p>
+                 <div className="mb-2 text-xs font-bold uppercase text-zinc-500">Servicios Recomendados:</div>
+                 <div className="flex flex-wrap gap-2">
+                   {result.recommendedServices.map(svcId => {
+                     const svc = SERVICES_LIST.find(s => s.id === svcId);
+                     return svc ? (
+                       <span key={svcId} className="px-3 py-1 rounded-md bg-zinc-900 text-white text-xs font-medium">
+                         {svc.label}
+                       </span>
+                     ) : null;
+                   })}
+                 </div>
+               </div>
+            </div>
+          </div>
+
+          {/* Detailed Grid */}
+          <div className="grid grid-cols-2 gap-10">
+            
+            {/* Visual Column */}
+            <div>
+               <div className="flex items-center gap-2 mb-4 border-b border-zinc-200 pb-2">
+                 <div className="w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-xs font-bold">V</div>
+                 <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-900">Diagnóstico Visual</h3>
+               </div>
+               <div>
+                  {VISUAL_CHECKLIST.map(item => (
+                    <AuditItemDetail 
+                      key={item.id}
+                      item={item}
+                      status={data.visualAudit[item.id] || 'NO'}
+                      observation={result.observations[item.id]}
+                    />
+                  ))}
+               </div>
+            </div>
+
+            {/* Strategy Column */}
+            <div>
+               <div className="flex items-center gap-2 mb-4 border-b border-zinc-200 pb-2">
+                 <div className="w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-xs font-bold">E</div>
+                 <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-900">Diagnóstico Estratégico</h3>
+               </div>
+               <div>
+                  {STRATEGY_CHECKLIST.map(item => (
+                    <AuditItemDetail 
+                      key={item.id}
+                      item={item}
+                      status={data.strategyAudit[item.id] || 'NO'}
+                      observation={result.observations[item.id]}
+                    />
+                  ))}
+               </div>
+            </div>
+
+          </div>
+
+          {/* Footer */}
+          <div className="absolute bottom-0 left-0 w-full p-8 border-t border-zinc-100">
+             <div className="flex justify-between items-center text-[10px] text-zinc-400 uppercase tracking-widest">
+                <span>Generado por eyeroniq Logic Engine v3.0</span>
+                <span>Confidencial • {data.projectName}</span>
+             </div>
+          </div>
+
         </div>
       </div>
     </div>

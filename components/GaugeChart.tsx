@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
@@ -11,19 +12,20 @@ const GaugeChart: React.FC<GaugeChartProps> = ({ score }) => {
     { name: 'Remaining', value: 100 - score },
   ];
 
-  // New color scheme: Dark Purple -> Bright Pink -> White/Cyan
+  // Colors for report (professional / print friendly)
   const getColor = (s: number) => {
-    if (s < 40) return '#7c3aed'; // Violet-600 (Low)
-    if (s < 70) return '#c026d3'; // Fuchsia-600 (Mid)
-    if (s < 90) return '#e879f9'; // Fuchsia-400 (High)
-    return '#fae8ff'; // Fuchsia-100 (Excellent)
+    if (s < 50) return '#ef4444'; // Red
+    if (s < 75) return '#f59e0b'; // Amber
+    if (s < 90) return '#8b5cf6'; // Violet
+    return '#10b981'; // Emerald
   };
 
   const activeColor = getColor(score);
-  const emptyColor = '#18181b'; // zinc-900
+  // Light gray for the empty part to look good on white paper
+  const emptyColor = '#e4e4e7'; // zinc-200
 
   return (
-    <div className="relative w-full h-48 flex justify-center items-end">
+    <div className="relative w-full h-full flex justify-center items-end">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
@@ -32,7 +34,7 @@ const GaugeChart: React.FC<GaugeChartProps> = ({ score }) => {
             cy="100%"
             startAngle={180}
             endAngle={0}
-            innerRadius="70%"
+            innerRadius="75%"
             outerRadius="100%"
             paddingAngle={0}
             dataKey="value"
@@ -43,9 +45,9 @@ const GaugeChart: React.FC<GaugeChartProps> = ({ score }) => {
           </Pie>
         </PieChart>
       </ResponsiveContainer>
-      <div className="absolute bottom-0 flex flex-col items-center mb-2">
-        <span className="text-5xl font-bold text-white">{score}</span>
-        <span className="text-xs text-zinc-500 uppercase tracking-widest">Health Score</span>
+      <div className="absolute bottom-0 flex flex-col items-center mb-1">
+        <span className="text-4xl font-bold text-zinc-900">{score}</span>
+        <span className="text-[10px] text-zinc-500 uppercase tracking-widest">Score</span>
       </div>
     </div>
   );

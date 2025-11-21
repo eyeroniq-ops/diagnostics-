@@ -1,257 +1,322 @@
+
 import { AnalysisResult, AuditInputData, AuditPhase, AssetStatus } from "../types";
-import { VISUAL_CHECKLIST, STRATEGY_CHECKLIST, SERVICES_LIST } from "../constants";
+import { VISUAL_CHECKLIST, STRATEGY_CHECKLIST, RISKS_LIST, OBJECTIVES_LIST } from "../constants";
 
-// --- LOGIC CONFIGURATION ---
+// --- SCORING WEIGHTS ---
+const SCORES = {
+  CRITICAL: 15, // Missing logo, audience, etc.
+  HIGH: 10,     // Missing manual, values
+  MEDIUM: 5,    // Missing secondary assets
+  LOW: 2        // Partial states
+};
 
+// --- OBSERVATION LIBRARY ---
 const OBSERVATION_LIBRARY: Record<string, { no: string; partial: string; yes: string }> = {
   // VISUAL
   v_brandbook: {
-    no: "Sin un Manual de Marca, pierdes consistencia cada vez que un tercero diseña para ti.",
-    partial: "Un manual incompleto genera dudas en la implementación. Necesita normalización.",
-    yes: "Excelente. Tener reglas claras facilita la escalabilidad y el trabajo de proveedores."
+    no: "La falta de un Manual de Marca es crítica. Sin reglas claras, cada proveedor improvisará, diluyendo tu identidad.",
+    partial: "El manual actual es insuficiente. Necesitas normalizar usos para garantizar consistencia.",
+    yes: "El Brandbook es sólido, permitiendo escalar la identidad sin perder coherencia."
   },
   v_logo_primary: {
-    no: "CRÍTICO. No existe la cara de la empresa. Prioridad absoluta.",
-    partial: "El logo actual presenta fallos técnicos o estéticos graves.",
-    yes: "Cuentas con el activo principal identificado."
+    no: "NO EXISTE MARCA. Sin un logo principal definido, no tienes una cara ante el mercado. Esto es prioridad #1.",
+    partial: "El logo actual tiene problemas de legibilidad o construcción que limitan su uso profesional.",
+    yes: "El identificador principal está definido correctamente."
   },
   v_logo_vector: {
-    no: "Error técnico grave. Sin vectores (AI/SVG) no puedes imprimir en gran formato ni rotular profesionalmente.",
-    partial: "Archivos dudosos. Se requiere trazado profesional para asegurar calidad.",
-    yes: "Archivos correctos para producción profesional."
+    no: "Sin archivos vectoriales (AI/SVG), tu marca se verá pixelada en impresiones grandes. Bloqueante para rotulación.",
+    partial: "Archivos de baja calidad. Se requiere un retrazado técnico urgente.",
+    yes: "Archivos listos para producción de alta calidad."
   },
   v_scalability: {
-    no: "Tu marca será ilegible en móviles, favicons o perfiles de redes sociales.",
-    partial: "La reducción del logo pierde detalles importantes.",
-    yes: "Tu marca es legible en cualquier tamaño."
+    no: "Tu marca desaparecerá en entornos móviles o favicons por falta de versiones reducidas.",
+    partial: "La reducción pierde detalles. Se necesita optimizar la síntesis gráfica.",
+    yes: "La marca responde bien en tamaños reducidos."
   },
   v_typography: {
-    no: "El uso de fuentes genéricas (Arial, Calibri) diluye la personalidad de la marca.",
-    partial: "Hay fuentes definidas pero no se usan consistentemente o faltan licencias.",
-    yes: "El sistema tipográfico aporta carácter y jerarquía."
+    no: "Usar fuentes genéricas quita personalidad. Necesitas una familia tipográfica que comunique tu tono.",
+    partial: "Hay inconsistencia en el uso de tipografías entre diferentes canales.",
+    yes: "Sistema tipográfico jerarquizado y con carácter."
   },
   v_palette: {
-    no: "La falta de códigos de color exactos provoca que tu marca se vea diferente en cada soporte.",
-    partial: "Colores definidos pero sin equivalencias para impresión (CMYK) vs Pantallas (RGB).",
-    yes: "Consistencia cromática asegurada en todos los canales."
+    no: "Sin códigos de color definidos, tu marca cambia de tono en cada pantalla o impresión.",
+    partial: "Faltan equivalencias CMYK/RGB, lo que genera colores apagados en impresión.",
+    yes: "Paleta de colores normalizada para todos los soportes."
   },
   v_logo_unique: {
-    no: "RIESGO LEGAL. Usar plantillas o copias impide el registro de marca y la diferenciación.",
-    partial: "Elementos genéricos que se confunden con la competencia.",
-    yes: "Identidad distintiva y protegible."
+    no: "ALERTA LEGAL: Usar plantillas o copias hace imposible registrar tu marca. Riesgo alto de demanda.",
+    partial: "Elementos genéricos que dificultan la diferenciación en el mercado.",
+    yes: "Identidad distintiva y apta para registro."
   },
   v_flat: {
-    no: "Estética obsoleta. Sombras y biseles antiguos transmiten una imagen desactualizada.",
-    partial: "Intento de modernización que aún conserva vicios de diseño antiguo.",
-    yes: "Estética actual, limpia y optimizada para digital."
+    no: "Estilo gráfico obsoleto (sombras, 3D antiguo) que transmite falta de actualización.",
+    partial: "En proceso de modernización, pero aún conserva vicios estéticos antiguos.",
+    yes: "Lenguaje visual moderno y plano (Flat Design), ideal para digital."
   },
 
   // STRATEGY
   s_mission: {
-    no: "Sin un propósito claro, es difícil alinear al equipo y atraer talento.",
-    partial: "Misión genérica que podría aplicar a cualquier empresa del sector.",
-    yes: "Norte estratégico claro."
+    no: "Una empresa sin misión clara es difícil de diferenciar. Falta el 'por qué'.",
+    partial: "Misión genérica. Suena igual a la competencia.",
+    yes: "Propósito claro que guía las decisiones internas."
   },
   s_values: {
-    no: "Una marca sin valores es una mercancía (commodity) que solo compite por precio.",
-    partial: "Valores listados pero no se reflejan en la comunicación ni acciones.",
-    yes: "Cultura de marca sólida que guía la toma de decisiones."
+    no: "Sin valores definidos, compites solo por precio al no conectar culturalmente.",
+    partial: "Valores definidos en papel pero no visibles en la comunicación.",
+    yes: "Cultura de marca sólida y comunicable."
   },
   s_audience: {
-    no: "Intentar venderle a 'todos' es la forma más rápida de gastar presupuesto sin retorno.",
-    partial: "Segmentación demográfica básica sin entender los dolores psicográficos.",
-    yes: "Claridad total sobre a quién servimos y qué necesitan."
+    no: "ERROR CRÍTICO: Intentar vender a 'todos' es ineficiente. Necesitas definir tu Buyer Persona ya.",
+    partial: "Segmentación demográfica básica. Falta profundizar en dolores y deseos psicográficos.",
+    yes: "Claridad absoluta sobre a quién sirves."
   },
   s_value_prop: {
-    no: "El cliente no entiende por qué elegirte a ti sobre la competencia.",
-    partial: "Propuesta confusa o centrada en características técnicas, no en beneficios.",
-    yes: "Diferenciador competitivo claro y comunicado."
+    no: "¿Por qué tú? Si no puedes responder eso claramente, tu cliente tampoco podrá elegirte.",
+    partial: "Propuesta confusa o centrada en características técnicas en lugar de beneficios.",
+    yes: "Diferenciador competitivo potente y claro."
   },
   s_tone: {
-    no: "Comunicación esquizofrénica: a veces formal, a veces casual. Genera desconfianza.",
-    partial: "Tono definido pero inconsistente entre canales (web vs redes).",
-    yes: "Voz de marca reconocible y coherente."
+    no: "La marca habla diferente en cada canal, generando desconfianza y confusión.",
+    partial: "Tono definido pero ejecución inconsistente por falta de guías.",
+    yes: "Voz de marca coherente y reconocible."
   },
   s_archetype: {
-    no: "Falta de conexión emocional. La marca se siente fría y corporativa.",
-    partial: "Arquetipo mezclado o mal ejecutado.",
-    yes: "Personalidad humana que conecta emocionalmente."
+    no: "Marca fría. Sin un arquetipo, cuesta crear conexión emocional.",
+    partial: "Personalidad diluida o contradictoria.",
+    yes: "Personalidad humana bien definida que conecta."
   },
   s_naming_check: {
-    no: "PELIGRO. Podrías estar invirtiendo en una marca que tendrás que cambiar por demanda legal.",
-    partial: "Dominio web disponible pero sin verificación en registro de marcas.",
-    yes: "Activo nominal seguro."
+    no: "RIESGO ALTO: Invertir en una marca cuyo nombre no puedes registrar es tirar dinero.",
+    partial: "Dominio disponible pero registro de marca incierto.",
+    yes: "Nombre seguro y protegible."
   },
   s_competitors: {
-    no: "Operar a ciegas sin saber qué hace el mercado te deja en desventaja.",
-    partial: "Conocimiento superficial de competidores directos.",
-    yes: "Estrategia informada por el contexto del mercado."
+    no: "Operar sin mirar a la competencia es peligroso. Necesitas benchmark.",
+    partial: "Análisis superficial. Se requiere profundizar en sus debilidades.",
+    yes: "Conocimiento estratégico del entorno competitivo."
   },
   s_refs: {
-    no: "Falta de dirección visual. El diseño será subjetivo y difícil de aprobar.",
-    partial: "Referencias dispersas sin un hilo conductor estético.",
-    yes: "Dirección de arte clara."
+    no: "Sin referencias visuales, el diseño será subjetivo y difícil de aprobar.",
+    partial: "Moodboard disperso sin dirección clara.",
+    yes: "Norte estético definido."
   }
 };
 
-const PHRASES = {
-  [AuditPhase.BRANDING_FIRST]: {
-    headlines: [
-      "Detén la inversión publicitaria: Faltan cimientos.",
-      "Prioridad Urgente: Construcción de Identidad.",
-      "Tu marca no está lista para el mercado."
-    ],
-    summaryTemplate: (name: string) => `El diagnóstico de ${name} revela carencias estructurales en la identidad visual. Antes de pensar en estrategias de crecimiento o web, es imperativo resolver los activos básicos (Logo, Vectores, Manual) para evitar proyectar una imagen amateur.`
-  },
-  [AuditPhase.STRATEGY_FIRST]: {
-    headlines: [
-      "Buena imagen, mensaje vacío.",
-      "El diseño no salvará una mala estrategia.",
-      "Necesitas definir a quién le hablas."
-    ],
-    summaryTemplate: (name: string) => `Visualmente ${name} tiene potencial, pero la auditoría detecta un vacío en la definición estratégica. Sin definir claramente la Propuesta de Valor y el Público Objetivo, cualquier inversión en marketing tendrá un retorno (ROI) bajo.`
-  },
-  [AuditPhase.READY_FOR_WEB]: {
-    headlines: [
-      "Cimientos sólidos, hora de digitalizar.",
-      "Marca lista para el ecosistema digital.",
-      "El siguiente paso es la presencia web."
-    ],
-    summaryTemplate: (name: string) => `¡Buenas noticias! ${name} cuenta con una base de identidad y estrategia saludable. El foco ahora debe cambiar de la definición a la implementación: presencia web, redes sociales y puntos de contacto digitales.`
-  },
-  [AuditPhase.READY_TO_SCALE]: {
-    headlines: [
-      "Sistema optimizado para liderar.",
-      "Marca madura lista para la expansión.",
-      "Todo en orden para acelerar."
-    ],
-    summaryTemplate: (name: string) => `El estado de ${name} es excelente. Los activos visuales son profesionales y la estrategia está clara. La marca está en una posición privilegiada para escalar, invertir en publicidad agresiva y automatizar procesos.`
-  }
+// --- HEADLINES REPOSITORY ---
+const HEADLINES = {
+  [AuditPhase.BRANDING_FIRST]: [
+    "Detén la inversión: Faltan cimientos.",
+    "Prioridad Urgente: Creación de Identidad.",
+    "Tu marca aún no existe visualmente.",
+    "Riesgo de invisibilidad en el mercado."
+  ],
+  [AuditPhase.STRATEGY_FIRST]: [
+    "Imagen vacía: Falta sustancia estratégica.",
+    "Rebranding necesario: Desconexión detectada.",
+    "No inviertas en ads sin definir tu mensaje.",
+    "El diseño es bueno, pero la estrategia falla."
+  ],
+  [AuditPhase.READY_FOR_WEB]: [
+    "Cimientos listos: Hora de digitalizar.",
+    "Luz verde para presencia Web.",
+    "Marca sólida, lista para el mundo digital.",
+    "El siguiente paso es tu ecosistema online."
+  ],
+  [AuditPhase.READY_TO_SCALE]: [
+    "Sistema óptimo: Listo para escalar.",
+    "Marca madura preparada para crecimiento.",
+    "Foco total en Contenido y Expansión.",
+    "Motor encendido para dominar el nicho."
+  ]
 };
 
-// --- LOGIC FUNCTIONS ---
+// --- LOGIC ENGINE ---
 
-const calculateScore = (data: AuditInputData): number => {
-  let score = 100;
+/**
+ * Calculates a score split by category to help phase determination
+ */
+const calculateSubScores = (data: AuditInputData) => {
+  let vScore = 100;
+  let sScore = 100;
 
-  // Weighted Deductions
-  const CRITICAL_PENALTY = 12;
-  const HIGH_PENALTY = 8;
-  const MED_PENALTY = 5;
-  const LOW_PENALTY = 3;
-
-  // Visual Penalties
-  if (data.visualAudit['v_logo_primary'] !== 'YES') score -= CRITICAL_PENALTY;
-  if (data.visualAudit['v_logo_vector'] !== 'YES') score -= CRITICAL_PENALTY;
-  if (data.visualAudit['v_typography'] !== 'YES') score -= HIGH_PENALTY;
-  if (data.visualAudit['v_brandbook'] !== 'YES') score -= HIGH_PENALTY;
-  
-  // Other visuals
+  // Calculate Visual Score
   Object.entries(data.visualAudit).forEach(([key, val]) => {
-    if (['v_logo_primary', 'v_logo_vector', 'v_typography', 'v_brandbook'].includes(key)) return;
-    if (val === 'NO') score -= MED_PENALTY;
-    if (val === 'PARTIAL') score -= LOW_PENALTY;
+    const item = VISUAL_CHECKLIST.find(i => i.id === key);
+    if (!item) return;
+    
+    const isCritical = ['v_logo_primary', 'v_logo_vector', 'v_brandbook'].includes(key);
+    if (val === 'NO') vScore -= isCritical ? SCORES.CRITICAL : SCORES.HIGH;
+    if (val === 'PARTIAL') vScore -= isCritical ? SCORES.HIGH : SCORES.MEDIUM;
   });
 
-  // Strategy Penalties
-  if (data.strategyAudit['s_audience'] !== 'YES') score -= CRITICAL_PENALTY;
-  if (data.strategyAudit['s_value_prop'] !== 'YES') score -= CRITICAL_PENALTY;
-  if (data.strategyAudit['s_naming_check'] !== 'YES') score -= HIGH_PENALTY;
-
-  // Other Strategy
+  // Calculate Strategy Score
   Object.entries(data.strategyAudit).forEach(([key, val]) => {
-    if (['s_audience', 's_value_prop', 's_naming_check'].includes(key)) return;
-    if (val === 'NO') score -= MED_PENALTY;
-    if (val === 'PARTIAL') score -= LOW_PENALTY;
+    const isCritical = ['s_audience', 's_value_prop', 's_naming_check'].includes(key);
+    if (val === 'NO') sScore -= isCritical ? SCORES.CRITICAL : SCORES.HIGH;
+    if (val === 'PARTIAL') sScore -= isCritical ? SCORES.HIGH : SCORES.MEDIUM;
   });
 
-  // Risk Penalties
-  score -= (data.risks.length * 2);
-
-  return Math.max(0, Math.round(score));
+  // Risk penalty affects both globally, but we track it separately
+  const riskPenalty = data.risks.length * 4;
+  
+  return {
+    visual: Math.max(0, vScore),
+    strategy: Math.max(0, sScore),
+    global: Math.max(0, Math.round(((vScore + sScore) / 2) - riskPenalty))
+  };
 };
 
-const determinePhase = (data: AuditInputData, score: number): AuditPhase => {
-  const v = data.visualAudit;
-  const s = data.strategyAudit;
+const determinePhase = (vScore: number, sScore: number, data: AuditInputData): AuditPhase => {
+  const { visualAudit, strategyAudit, objectives } = data;
 
-  // Phase 1: Branding Critical
-  // If no primary logo, no vectors, or score is very low due to visuals
-  if (v['v_logo_primary'] === 'NO' || v['v_logo_vector'] === 'NO' || v['v_typography'] === 'NO') {
+  // FASE 1: BRANDING DESDE CERO
+  // If critical visual assets are missing or visual score is abysmal
+  if (
+    visualAudit['v_logo_primary'] === 'NO' || 
+    visualAudit['v_logo_vector'] === 'NO' || 
+    vScore < 50
+  ) {
     return AuditPhase.BRANDING_FIRST;
   }
-  if (score < 40) {
-    return AuditPhase.BRANDING_FIRST;
-  }
 
-  // Phase 2: Strategy Critical
-  // Visuals are okay (passed checks above), but critical strategy missing
-  if (s['s_audience'] === 'NO' || s['s_value_prop'] === 'NO' || s['s_mission'] === 'NO') {
+  // FASE 2: REBRANDING
+  // If requested explicitly OR strategy is missing criticals OR visuals exist but strategy is weak
+  if (
+    objectives.includes('o_rebrand') ||
+    strategyAudit['s_audience'] === 'NO' || 
+    strategyAudit['s_value_prop'] === 'NO' || 
+    sScore < 65
+  ) {
     return AuditPhase.STRATEGY_FIRST;
   }
-  if (s['s_audience'] === 'PARTIAL' && s['s_value_prop'] === 'PARTIAL') {
-    return AuditPhase.STRATEGY_FIRST;
+
+  // FASE 3: WEB Y DIGITAL
+  // Foundation is decent (Scores > 65-70). Not yet excellent.
+  // Or if risks are high enough to prevent scaling.
+  if (vScore < 85 || sScore < 85 || data.risks.length > 2) {
+    return AuditPhase.READY_FOR_WEB;
   }
 
-  // Phase 3 vs 4
-  // If everything is mostly YES and score is high
-  if (score > 85 && data.risks.length < 3) {
-    return AuditPhase.READY_TO_SCALE;
+  // FASE 4: REDES Y CONTENIDO
+  // Everything is solid (>85)
+  return AuditPhase.READY_TO_SCALE;
+};
+
+const generateDynamicSummary = (data: AuditInputData, phase: AuditPhase, scores: { visual: number, strategy: number, global: number }): string => {
+  const parts: string[] = [];
+
+  // 1. Intro
+  parts.push(`El diagnóstico de **${data.projectName}** arroja un índice de salud global del **${scores.global}%**.`);
+
+  // 2. Phase Explanation
+  switch (phase) {
+    case AuditPhase.BRANDING_FIRST:
+      parts.push("Detectamos carencias fundamentales en los activos visuales. Antes de cualquier implementación web o campaña, es imperativo **crear la marca desde cero** para asegurar profesionalismo.");
+      if (data.visualAudit['v_logo_vector'] === 'NO') parts.push("La ausencia de archivos vectoriales es un bloqueo técnico inmediato.");
+      break;
+    case AuditPhase.STRATEGY_FIRST:
+      parts.push("Aunque existen elementos visuales, la base estratégica es débil. El proyecto requiere un proceso de **Rebranding Estratégico** para alinear la identidad con una audiencia y propuesta de valor claras.");
+      if (data.strategyAudit['s_audience'] === 'NO') parts.push("No se ha definido claramente a quién se le está vendiendo.");
+      break;
+    case AuditPhase.READY_FOR_WEB:
+      parts.push("La marca cuenta con cimientos sólidos. Está lista para su etapa de **Digitalización y Desarrollo Web**. El foco debe pasar de la definición a la construcción del ecosistema digital.");
+      break;
+    case AuditPhase.READY_TO_SCALE:
+      parts.push("¡Excelente estado! La marca está madura, coherente y lista para **Escalar**. El esfuerzo debe centrarse totalmente en la generación de tráfico, contenido recurrente y presencia en redes sociales.");
+      break;
   }
 
-  // Default mid-state
-  return AuditPhase.READY_FOR_WEB;
+  // 3. Risk & Objectives Context
+  if (data.risks.includes('r_budget')) {
+    parts.push("Dado el presupuesto limitado, recomendamos un enfoque 'lean', priorizando solo los servicios esenciales.");
+  }
+  if (data.objectives.includes('o_sales') && phase !== AuditPhase.BRANDING_FIRST) {
+    parts.push("La estrategia se optimizará agresivamente para la conversión de ventas.");
+  }
+
+  return parts.join(" ");
 };
 
 const generateServices = (data: AuditInputData, phase: AuditPhase): string[] => {
   const recommended = new Set<string>();
-  const v = data.visualAudit;
-  const s = data.strategyAudit;
+  const { risks, objectives, visualAudit } = data;
 
-  // Hard rules
-  if (v['v_logo_primary'] !== 'YES' || v['v_brandbook'] !== 'YES') recommended.add('srv_identity');
-  if (s['s_audience'] !== 'YES' || s['s_value_prop'] !== 'YES') recommended.add('srv_strategy');
-  if (s['s_tone'] !== 'YES' || data.objectives.includes('o_awareness')) recommended.add('srv_content');
-  
-  // Phase based rules
-  if (phase === AuditPhase.BRANDING_FIRST) recommended.add('srv_identity');
-  if (phase === AuditPhase.STRATEGY_FIRST) {
-    recommended.add('srv_strategy');
-    recommended.add('srv_consulting');
+  // --- CORE PHASE SERVICES ---
+  switch (phase) {
+    case AuditPhase.BRANDING_FIRST:
+      recommended.add('srv_identity'); // Branding Cero
+      recommended.add('srv_strategy');
+      if (risks.includes('r_no_history')) recommended.add('srv_consulting');
+      break;
+
+    case AuditPhase.STRATEGY_FIRST:
+      recommended.add('srv_strategy'); // Rebranding Core
+      recommended.add('srv_identity'); // Rebranding Visual
+      if (!risks.includes('r_budget')) recommended.add('srv_consulting');
+      break;
+
+    case AuditPhase.READY_FOR_WEB:
+      recommended.add('srv_web');
+      if (visualAudit['v_brandbook'] !== 'YES') recommended.add('srv_identity'); // Tweaks
+      if (objectives.includes('o_leads')) recommended.add('srv_ads');
+      break;
+
+    case AuditPhase.READY_TO_SCALE:
+      recommended.add('srv_social');
+      recommended.add('srv_content');
+      if (!risks.includes('r_budget')) recommended.add('srv_ads');
+      recommended.add('srv_ai');
+      break;
   }
-  if (phase === AuditPhase.READY_FOR_WEB) {
+
+  // --- CONDITIONAL MODIFIERS ---
+
+  // If Risk: Budget
+  if (risks.includes('r_budget')) {
+    recommended.delete('srv_consulting');
+    recommended.delete('srv_ai');
+    // Prefer Content over Ads if budget is low
+    if (recommended.has('srv_ads')) {
+        recommended.delete('srv_ads');
+        recommended.add('srv_content');
+    }
+  }
+
+  // If Objective: Launch (Overrides phase if foundations exist)
+  if (objectives.includes('o_launch') && phase !== AuditPhase.BRANDING_FIRST) {
     recommended.add('srv_web');
-    recommended.add('srv_social');
-  }
-  if (phase === AuditPhase.READY_TO_SCALE) {
     recommended.add('srv_ads');
-    recommended.add('srv_ai');
   }
 
-  // Objectives Mapping
-  if (data.objectives.includes('o_sales')) recommended.add('srv_ads');
-  if (data.objectives.includes('o_leads')) recommended.add('srv_web');
+  // If Objective: Rebrand (Forces identity work)
+  if (objectives.includes('o_rebrand')) {
+    recommended.add('srv_identity');
+    recommended.add('srv_strategy');
+  }
+  
+  // If Objective: Sales (Force Ads/Web if appropriate)
+  if (objectives.includes('o_sales') && phase !== AuditPhase.BRANDING_FIRST) {
+      if (phase === AuditPhase.READY_FOR_WEB) recommended.add('srv_ads');
+  }
 
-  return Array.from(recommended).slice(0, 5); // Top 5
-};
-
-const getObservationText = (id: string, status: AssetStatus): string => {
-  const lib = OBSERVATION_LIBRARY[id];
-  if (!lib) return "Sin observación específica.";
-  if (status === 'YES') return lib.yes;
-  if (status === 'PARTIAL') return lib.partial;
-  return lib.no;
+  return Array.from(recommended).slice(0, 5);
 };
 
 // --- MAIN EXPORT ---
 
 export const analyzeBrandProject = async (data: AuditInputData): Promise<AnalysisResult> => {
-  // Simulate delay for UX feel
-  await new Promise(resolve => setTimeout(resolve, 1500));
+  await new Promise(resolve => setTimeout(resolve, 1000));
 
-  const score = calculateScore(data);
-  const phase = determinePhase(data, score);
+  const scores = calculateSubScores(data);
+  const phase = determinePhase(scores.visual, scores.strategy, data);
   
+  const possibleHeadlines = HEADLINES[phase];
+  const headline = possibleHeadlines[Math.floor(Math.random() * possibleHeadlines.length)];
+
+  const summary = generateDynamicSummary(data, phase, scores);
+  const services = generateServices(data, phase);
+
+  // Map Observations
   const observations: Record<string, string> = {};
   [...VISUAL_CHECKLIST, ...STRATEGY_CHECKLIST].forEach(item => {
     const status = item.category === 'visual' 
@@ -259,21 +324,18 @@ export const analyzeBrandProject = async (data: AuditInputData): Promise<Analysi
       : data.strategyAudit[item.id];
     
     if (status) {
-      observations[item.id] = getObservationText(item.id, status);
+      observations[item.id] = OBSERVATION_LIBRARY[item.id] 
+        ? (status === 'YES' ? OBSERVATION_LIBRARY[item.id].yes : status === 'PARTIAL' ? OBSERVATION_LIBRARY[item.id].partial : OBSERVATION_LIBRARY[item.id].no)
+        : "Estado registrado.";
     }
   });
 
-  const headlineOptions = PHRASES[phase].headlines;
-  const headline = headlineOptions[Math.floor(Math.random() * headlineOptions.length)];
-  
-  const summary = PHRASES[phase].summaryTemplate(data.projectName || "El Proyecto");
-
   return {
-    score,
+    score: scores.global,
     phase,
     headline,
     summary,
     observations,
-    recommendedServices: generateServices(data, phase)
+    recommendedServices: services
   };
 };
