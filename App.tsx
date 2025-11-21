@@ -24,7 +24,7 @@ function App() {
       setView('report');
     } catch (err) {
       console.error(err);
-      setError("Error al analizar el proyecto. Por favor verifica tu conexión.");
+      setError("Error al generar el reporte.");
       setView('form');
     }
   };
@@ -54,7 +54,7 @@ function App() {
             <span className="text-xl font-bold tracking-tight text-white">eyeroniq</span>
           </div>
           <div className="text-xs font-medium text-zinc-500 border border-zinc-800 px-3 py-1 rounded-full bg-zinc-900">
-            v2.5 Flash Engine
+            v3.0 Logic Engine
           </div>
         </div>
       </header>
@@ -67,7 +67,7 @@ function App() {
                 Diagnóstico de <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-violet-500 font-medium">Marca</span>
               </h1>
               <p className="text-zinc-400 text-lg">
-                Ingresa los detalles del proyecto para generar una hoja de ruta estratégica y puntaje de viabilidad con IA.
+                Ingresa los detalles del proyecto para generar una hoja de ruta estratégica y puntaje de viabilidad.
               </p>
             </div>
 
@@ -109,8 +109,8 @@ function App() {
               <Loader2 size={64} className="text-fuchsia-500 animate-spin relative z-10" />
             </div>
             <div className="text-center space-y-2">
-              <h3 className="text-2xl font-light text-white">Analizando Activos...</h3>
-              <p className="text-zinc-500 text-sm">Gemini está evaluando consistencia, estrategia y riesgos.</p>
+              <h3 className="text-2xl font-light text-white">Procesando Datos...</h3>
+              <p className="text-zinc-500 text-sm">Calculando puntuación y generando hoja de ruta.</p>
             </div>
           </div>
         )}
